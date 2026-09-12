@@ -6,6 +6,7 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 class DNF {
 public:
@@ -44,6 +45,7 @@ private:
         const ImplicantList& primeImplicants,
         const ImplicantList& requiredMinterms) const;
     bool Covers(const Impl& primeImplicant, const Impl& minterm) const;
+    bool are_columns_covered_by_rows(const CoverageTable &coverageTable, const IndexList &selectedColumns, const IndexList &selectedRows) const;
     IndexList SelectMinimumCover(
         const CoverageTable& coverageTable,
         const ImplicantList& primeImplicants) const;
@@ -56,3 +58,11 @@ private:
         const ImplicantList& primeImplicants,
         const IndexList& selectedIndices) const;
 };
+
+template <typename T>
+void push_back_if_unique(std::vector<T>& vec, const T& value) {
+    // Если элемент НЕ найден, добавляем его
+    if (std::find(vec.begin(), vec.end(), value) == vec.end()) {
+        vec.push_back(value);
+    }
+}
