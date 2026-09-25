@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Лабораторная № 2 — структурный синтез автомата Мили</title>
+  <style>
+    :root {
+      --ink: #172532; --muted: #536575; --paper: #f8f6f1; --white: #fff;
+      --line: #d9e0df; --teal: #087f78; --teal-dark: #08635f; --teal-soft: #e6f4f1;
+      --amber: #9a5b09; --amber-soft: #fff3dd; --red: #a93837; --red-soft: #fff0ed;
+      --shadow: 0 12px 36px rgba(22, 42, 48, .08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font: 16px/1.65 "Segoe UI", Arial, sans-serif; }
+    a { color: var(--teal-dark); }
+    a:hover { text-decoration-thickness: 2px; }
+    .progress { position: fixed; z-index: 20; top: 0; left: 0; height: 4px; width: 0; background: var(--teal); }
+    .layout { display: grid; grid-template-columns: 250px minmax(0, 860px); gap: clamp(20px, 4vw, 68px); max-width: 1260px; margin: 0 auto; padding: 40px 28px 100px; }
+    aside { position: sticky; top: 24px; align-self: start; padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--white); box-shadow: var(--shadow); }
+    aside .eyebrow { margin: 0 0 14px; }
+    aside nav { display: grid; gap: 4px; }
+    aside nav a { padding: 6px 9px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: .91rem; }
+    aside nav a:hover, aside nav a:focus { background: var(--teal-soft); color: var(--teal-dark); }
+    aside .status { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 15px; font-size: .88rem; color: var(--muted); }
+    main { min-width: 0; }
+    .hero { padding: clamp(30px, 6vw, 58px); background: #10393b; color: #f9fbf6; border-radius: 28px; box-shadow: var(--shadow); }
+    .eyebrow { text-transform: uppercase; letter-spacing: .13em; font-weight: 800; font-size: .72rem; color: var(--teal); }
+    .hero .eyebrow { color: #92e0cf; }
+    h1 { max-width: 780px; font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.12; margin: 14px 0; letter-spacing: -.035em; }
+    .hero p { max-width: 680px; color: #d5e7e3; font-size: 1.08rem; }
+    .hero .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+    .pill { display: inline-flex; border-radius: 99px; padding: 5px 11px; background: rgba(255,255,255,.13); font-size: .81rem; font-weight: 700; }
+    section { scroll-margin-top: 22px; margin-top: 46px; }
+    h2 { margin: 0 0 16px; font-size: clamp(1.45rem, 2.5vw, 2rem); line-height: 1.2; letter-spacing: -.025em; }
+    h3 { margin: 28px 0 10px; font-size: 1.16rem; }
+    p { margin: 0 0 15px; }
+    ul, ol { padding-left: 1.45em; }
+    li { margin: 6px 0; }
+    .lead { font-size: 1.11rem; color: #364b58; }
+    .card, .note, .quiz-card { background: var(--white); border: 1px solid var(--line); border-radius: 17px; padding: 22px 24px; box-shadow: var(--shadow); }
+    .card + .card { margin-top: 15px; }
+    .note { border-left: 5px solid var(--teal); margin: 22px 0; }
+    .note.amber { border-left-color: #c88718; background: var(--amber-soft); }
+    .note.red { border-left-color: var(--red); background: var(--red-soft); }
+    .note p:last-child { margin-bottom: 0; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .stat { border: 1px solid var(--line); border-radius: 15px; background: var(--white); padding: 16px 18px; }
+    .stat strong { display: block; color: var(--teal-dark); font-size: 1.55rem; line-height: 1.25; }
+    .stat span { display: block; font-size: .88rem; color: var(--muted); }
+    .flow { display: grid; gap: 8px; margin: 20px 0; }
+    .flow > div { display: flex; align-items: center; gap: 13px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
+    .flow b { color: var(--teal-dark); min-width: 30px; }
+    .flow span { color: var(--muted); font-size: .91rem; }
+    .flow .arrow { align-self: center; justify-self: center; color: var(--teal); font-weight: 800; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+    table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: .93rem; }
+    th, td { padding: 10px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    th { background: #eef4f2; color: #204448; font-size: .84rem; }
+    code, pre { font-family: Consolas, "Cascadia Code", monospace; }
+    code { background: #e9efee; padding: .13em .33em; border-radius: 4px; font-size: .91em; white-space: nowrap; }
+    pre { margin: 15px 0; border-radius: 12px; padding: 18px; overflow-x: auto; background: #152b33; color: #ecf5f1; line-height: 1.5; font-size: .89rem; }
+    pre code { background: none; color: inherit; padding: 0; white-space: pre; }
+    .lab-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; }
+    label { font-weight: 700; }
+    select { display: block; margin-top: 5px; min-width: 112px; border: 1px solid #9ab5b2; border-radius: 9px; padding: 9px 12px; background: #fff; color: var(--ink); font: inherit; }
+    .lab-result { margin-top: 18px; padding: 18px; border-radius: 12px; background: var(--teal-soft); }
+    .lab-result strong { color: var(--teal-dark); }
+    .source-list { display: grid; gap: 8px; padding: 0; list-style: none; }
+    .source-list li { margin: 0; padding: 11px 14px; border-radius: 9px; background: var(--white); border: 1px solid var(--line); }
+    .small { color: var(--muted); font-size: .9rem; }
+    .quiz-intro { background: var(--teal-soft); border: 1px solid #bfddd5; border-radius: 15px; padding: 18px 22px; }
+    .quiz-card { margin-top: 15px; box-shadow: none; }
+    .quiz-card.correct { border-color: #70baa8; }
+    .quiz-card.wrong { border-color: #d98f83; }
+    .quiz-card legend { padding: 0; font-weight: 800; line-height: 1.4; }
+    fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+    .choices { display: grid; gap: 8px; margin-top: 13px; }
+    .choice { display: flex; align-items: start; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; font-weight: 400; cursor: pointer; }
+    .choice:hover { background: #f1f7f5; }
+    .choice input { margin: 5px 0 0; accent-color: var(--teal); }
+    .feedback { margin-top: 12px; padding: 11px 13px; border-radius: 8px; font-size: .92rem; }
+    .feedback.good { background: var(--teal-soft); color: #135f54; }
+    .feedback.bad { background: var(--red-soft); color: #80312f; }
+    .quiz-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    button { border: 0; border-radius: 9px; padding: 11px 18px; background: var(--teal); color: white; font: inherit; font-weight: 800; cursor: pointer; }
+    button:hover { background: var(--teal-dark); }
+    button.secondary { background: #dfeae7; color: #23484a; }
+    button.secondary:hover { background: #cee1dc; }
+    #quizResult { margin-top: 17px; padding: 17px 20px; border-radius: 13px; font-weight: 700; background: #eef2f1; }
+    #quizResult.passed { background: var(--teal-soft); color: #115f50; }
+    #quizResult.failed { background: var(--amber-soft); color: #764909; }
+    footer { margin-top: 48px; border-top: 1px solid var(--line); padding-top: 20px; color: var(--muted); font-size: .88rem; }
+    @media (max-width: 950px) {
+      .layout { display: block; padding: 16px 16px 70px; }
+      aside { position: static; margin-bottom: 16px; }
+      aside nav { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 570px) {
+      .hero { border-radius: 18px; }
+      .grid { grid-template-columns: 1fr; }
+      aside nav { grid-template-columns: 1fr 1fr; }
+      .card, .note, .quiz-card { padding: 17px; }
+    }
+    @media print {
+      body { background: white; }
+      .layout { display: block; max-width: none; padding: 0; }
+      aside, .progress, .quiz-actions, .lab-controls { display: none; }
+      .hero { color: var(--ink); background: white; padding: 0 0 16px; box-shadow: none; }
+      .hero p, .hero .eyebrow { color: var(--ink); }
+      .hero .pill { border: 1px solid var(--line); }
+      section { break-inside: avoid; }
+      .card, .note, .quiz-card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="progress" id="readProgress" aria-hidden="true"></div>
+<div class="layout">
+  <aside aria-label="Навигация по отчёту">
+    <p class="eyebrow">Маршрут</p>
+    <nav>
+      <a href="#goal">1. Задача</a>
+      <a href="#theory">2. Интуиция</a>
+      <a href="#data">3. Исходные данные</a>
+      <a href="#encoding">4. Кодирование</a>
+      <a href="#scales">5. Шкалы функций</a>
+      <a href="#minimize">6. Минимизация</a>
+      <a href="#checking">7. Проверка</a>
+      <a href="#architecture">8. Код и файлы</a>
+      <a href="#defense">9. К защите</a>
+      <a href="#quiz">10. Обязательный квиз</a>
+    </nav>
+    <div class="status" id="sideStatus">Квиз ещё не пройден.</div>
+  </aside>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Теория автоматов · лабораторная № 2</div>
+      <h1>Из таблиц автомата — в логическую схему</h1>
+      <p>Разбор варианта 1 по твоему коду: автомат Мили, прямое кодирование состояний, минимизация через ЛР № 1 и проверка полученной схемы.</p>
+      <div class="meta"><span class="pill">7 входов</span><span class="pill">8 состояний</span><span class="pill">5 выходов</span><span class="pill">3 D-триггера</span></div>
+    </header>
+
+    <section id="goal">
+      <p class="eyebrow">Зачем всё это</p>
+      <h2>1. Что требует лабораторная</h2>
+      <p class="lead">Исходный автомат задан двумя таблицами. Нужно получить логические функции, по которым аппаратная схема сможет вычислять выход и следующее состояние без обращения к таблицам.</p>
+      <div class="grid">
+        <div class="stat"><strong>f(x, s)</strong><span>номер следующего состояния</span></div>
+        <div class="stat"><strong>g(x, s)</strong><span>номер активного выхода</span></div>
+      </div>
+      <p>Методичка требует определить числа выходов, состояний и D-триггеров; закодировать состояния; составить функции возбуждения и выходов; минимизировать их методом Квайна — Мак-Класки программой из ЛР № 1; проверить результат на заданном слове. Итоги пишутся в <code>output.txt</code> и <code>check.txt</code>.</p>
+      <div class="note"><strong>Главный смысл.</strong> Таблицы описывают поведение автомата как справочник. Структурный синтез превращает это поведение в схему из памяти состояния и комбинационной логики.</div>
+    </section>
+
+    <section id="theory">
+      <p class="eyebrow">Интуиция</p>
+      <h2>2. Что происходит за один такт</h2>
+      <div class="flow" aria-label="Поток данных автомата">
+        <div><b>①</b><div>На вход схемы приходят код символа <code>x</code> и биты <em>текущего</em> состояния <code>q2 q1 q0</code>.</div></div>
+        <div><b>②</b><div>Комбинационная схема одновременно вычисляет <code>Q0 Q1 Q2</code> и <code>y1…y5</code>.</div></div>
+        <div><b>③</b><div>Значения <code>Q</code> поступают на D-входы триггеров. После такта они становятся битами нового состояния.</div></div>
+        <div><b>④</b><div>На следующем входном символе вычисление повторяется уже с новым состоянием.</div></div>
+      </div>
+      <p><strong>Почему автомат Мили?</strong> Его выход зависит и от текущего состояния, и от текущего входа. У автомата Мура выход закреплён за состоянием и обычно задаётся отмеченной таблицей переходов.</p>
+      <p><strong>Почему D-триггер?</strong> У него значение после такта равно значению на входе D перед тактом. Поэтому функция возбуждения каждого D-триггера — соответствующий бит <em>следующего</em> состояния. В коде функции названы <code>Q0</code>, <code>Q1</code>, <code>Q2</code>; текущие биты в объяснениях обозначены строчными <code>q0</code>, <code>q1</code>, <code>q2</code>.</p>
+      <div class="note amber"><strong>Частая путаница.</strong> Номер состояния <code>s2</code>, его индекс в массиве <code>1</code> и его код <code>001</code> — три разных представления одной сущности.</div>
+    </section>
+
+    <section id="data">
+      <p class="eyebrow">Входной вариант</p>
+      <h2>3. Как читать таблицы</h2>
+      <p>В <a href="f_table.txt">f_table.txt</a> и <a href="g_table.txt">g_table.txt</a> семь строк соответствуют <code>x1…x7</code>, восемь столбцов — <code>s1…s8</code>. На пересечении первой строки и первого столбца находятся <code>f(x1,s1)=s2</code> и <code>g(x1,s1)=y1</code>.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Текущая пара</th><th>Что написано в f</th><th>Что написано в g</th><th>Смысл шага</th></tr></thead>
+        <tbody>
+          <tr><td><code>x1, s1</code></td><td><code>2</code></td><td><code>1</code></td><td>Выдать <code>y1</code>, перейти в <code>s2</code></td></tr>
+          <tr><td><code>x2, s3</code></td><td><code>6</code></td><td><code>5</code></td><td>Выдать <code>y5</code>, перейти в <code>s6</code></td></tr>
+          <tr><td><code>x1, s6</code></td><td><code>-</code></td><td><code>3</code></td><td>Выход <code>y3</code> задан, переход свободен</td></tr>
+        </tbody>
+      </table></div>
+      <p>В файлах номер начинается с 1. В циклах C++ <code>input=0, state=0</code> обращается к паре <code>x1,s1</code>. <code>kUndefinedValue == 0</code> внутри программы представляет знак <code>-</code> в исходных таблицах.</p>
+      <div class="note"><strong>Неопределённость независима.</strong> Если в <code>f</code> стоит <code>-</code>, свободны функции следующего состояния <code>Q</code>, но заданное значение <code>g</code> нужно сохранить. Если <code>-</code> стоит только в <code>g</code>, свободны функции <code>y</code>.</div>
+    </section>
+
+    <section id="encoding">
+      <p class="eyebrow">Этап 1 · EncodeStates</p>
+      <h2>4. Зачем и как кодируются состояния</h2>
+      <p>Триггер хранит один бит. Чтобы различать 8 состояний, достаточно <code>log₂ 8 = 3</code> битов: 2 бита дают лишь 4 комбинации, 3 дают 8. Для 7 входных символов также нужны 3 бита.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Номер состояния</th><th>Хранимый код</th><th>Номер входа</th><th>Код входа</th></tr></thead>
+        <tbody>
+          <tr><td><code>s1</code></td><td><code>000</code></td><td><code>x1</code></td><td><code>000</code></td></tr>
+          <tr><td><code>s2</code></td><td><code>001</code></td><td><code>x2</code></td><td><code>001</code></td></tr>
+          <tr><td><code>s3</code></td><td><code>010</code></td><td><code>x3</code></td><td><code>010</code></td></tr>
+          <tr><td><code>s8</code></td><td><code>111</code></td><td>не используется</td><td><code>111</code></td></tr>
+        </tbody>
+      </table></div>
+      <p><code>EncodeStates()</code> получает размеры таблицы, находит максимальный определённый номер выхода (здесь 5), вычисляет разрядности, строит <code>stateCodes_[s-1]</code> и отвергает переходы вне диапазона <code>1…8</code>. Прямое кодирование означает: код состояния <code>s</code> — двоичная запись <code>s−1</code>.</p>
+      <div class="note amber"><strong>Почему <code>−1</code>?</strong> Восемь трёхбитовых кодов идут от 0 до 7, а состояния в методичке пронумерованы от 1 до 8. Поэтому <code>s8 → 7 → 111</code>.</div>
+    </section>
+
+    <section id="scales">
+      <p class="eyebrow">Этап 2 · BuildSdnf</p>
+      <h2>5. Как таблицы превращаются в восемь функций</h2>
+      <p>Создаются три функции следующего состояния <code>Q0, Q1, Q2</code> и пять отдельных индикаторов выхода <code>y1…y5</code>. Выход <code>y4</code> задаётся набором индикаторов <code>0 0 0 1 0</code>, а не двоичным кодом числа 4.</p>
+      <p>Аргумент каждой функции — шесть битов в строгом порядке <code>a2 a1 a0 q2 q1 q0</code>: код входа, затем код текущего состояния. Существует <code>2⁶ = 64</code> набора. Поэтому поле <code>scale</code> каждой функции — строка из 64 символов. Позиция символа — десятичное значение шестибитового набора.</p>
+      <pre><code>x2 = 001, s3 = 010
+набор = 001010₂ = 10₁₀
+f(x2,s3) = s6 = 101₂  → Q0=1, Q1=0, Q2=1
+g(x2,s3) = y5        → y1…y5 = 0 0 0 0 1</code></pre>
+      <p>Именно эти значения записываются на позицию 10 восьми шкал. Для текущего варианта позиция вычисляется как <code>8 × (x−1) + (s−1)</code>. Код входа <code>111</code> не задан, поэтому позиции 56–63 остаются <code>-</code>.</p>
+      <div class="card">
+        <h3 style="margin-top:0">Исследуй ячейку таблицы</h3>
+        <div class="lab-controls">
+          <label>Вход <select id="inputPick"></select></label>
+          <label>Текущее состояние <select id="statePick"></select></label>
+        </div>
+        <div class="lab-result" id="cellResult" aria-live="polite"></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Где встречается «-»</th><th>Что он значит</th></tr></thead>
+        <tbody>
+          <tr><td>В таблице <code>f</code> или <code>g</code></td><td>Переход или выход для этой ячейки не задан</td></tr>
+          <tr><td>В <code>scale</code></td><td>Минимизатор может выбрать 0 или 1 для этого набора</td></tr>
+          <tr><td>В импликанте МДНФ</td><td>Значение соответствующего входного бита не важно</td></tr>
+          <tr><td>В ожидаемом проверочном слове</td><td>Любой вычисленный результат принимается для этой позиции</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Техническая точность: в программе поле называется <code>scale</code> и передаётся в ЛР № 1. Оно представляет таблицу значений частично заданной функции; СДНФ соответствует её наборам с единицами.</p>
+    </section>
+
+    <section id="minimize">
+      <p class="eyebrow">Этап 3 · Minimize</p>
+      <h2>6. Зачем нужна ЛР № 1</h2>
+      <p>Если напрямую составить выражение по всем единицам шкалы, оно будет длинным. Метод Квайна — Мак-Класки объединяет наборы, различающиеся одним битом, и устраняет ненужные переменные. Затем выбирается покрытие всех обязательных единиц без захвата заданных нулей. Значения <code>-</code> можно использовать для укрупнения импликант.</p>
+      <p><code>Minimize()</code> проходит по <code>functions_</code>. <code>Lab1Runner</code> записывает шкалу в <code>build/lab1_io/Q0_scale.txt</code> и аналогичные файлы, запускает исполняемый файл ЛР № 1, читает импликанты из <code>Q0_mdnf.txt</code> и сохраняет их в поле <code>mdnf</code>. Затем <code>WriteOutput()</code> формирует <code>build/output.txt</code>.</p>
+      <pre><code>Q0:
+000-00
+001-01
+...</code></pre>
+      <p>Это начало реально полученного <code>output.txt</code>. Импликанта <code>000-00</code> проверяет биты в порядке <code>a2 a1 a0 q2 q1 q0</code>: первые три равны 0, <code>q2</code> произволен, последние два равны 0. Внутри импликанты условия соединяются И, между импликантами — ИЛИ.</p>
+      <div class="note"><strong>Что значит «минимальная».</strong> Конкретная запись МДНФ может быть не единственной. Корректность проверяется значениями функций на всех заданных наборах, а не буквальным совпадением строк импликант.</div>
+    </section>
+
+    <section id="checking">
+      <p class="eyebrow">Проверка · Check</p>
+      <h2>7. Как проверяется готовая схема</h2>
+      <p>Проверочное слово содержит входы <code>X = 1 2 3 4 5 6 7</code>, ожидаемые состояния <code>S = 1 2 8 1 4 3 8 3</code> и ожидаемые выходы <code>Y = 1 4 4 4 4 3 -</code>. <code>Check()</code> использует из ожидаемого слова только входы и начальное состояние <code>s1</code>.</p>
+      <ol>
+        <li>Кодирует очередной вход и текущее состояние как <code>[вход][состояние]</code>.</li>
+        <li>Для каждой МДНФ проверяет импликанты: <code>0</code> и <code>1</code> должны совпасть с битом набора, <code>-</code> пропускается. Достаточно одной подходящей импликанты.</li>
+        <li>Из <code>Q0…Q2</code> собирает код следующего состояния: <code>Q0 + 2·Q1 + 4·Q2</code>, затем прибавляет 1, чтобы получить номер состояния.</li>
+        <li>Если истинна ровно одна функция <code>yj</code>, записывает выход <code>j</code>. Если их ноль или больше одной, записывает <code>kUndefinedValue</code>, то есть <code>-</code>.</li>
+        <li>После вычисления выхода и перехода меняет текущее состояние и переходит к следующему входу.</li>
+      </ol>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Вход</th><th>Состояние до</th><th>Выход</th><th>Состояние после</th></tr></thead>
+        <tbody>
+          <tr><td>x1</td><td>s1</td><td>y1</td><td>s2</td></tr>
+          <tr><td>x2</td><td>s2</td><td>y4</td><td>s8</td></tr>
+          <tr><td>x3</td><td>s8</td><td>y4</td><td>s1</td></tr>
+          <tr><td>x4</td><td>s1</td><td>y4</td><td>s4</td></tr>
+          <tr><td>x5</td><td>s4</td><td>y4</td><td>s3</td></tr>
+          <tr><td>x6</td><td>s3</td><td>y3</td><td>s8</td></tr>
+          <tr><td>x7</td><td>s8</td><td>не ограничен</td><td>s3</td></tr>
+        </tbody>
+      </table></div>
+      <p><code>main()</code> сравнивает вычисленные <code>S/Y</code> с ожидаемыми. Последний ожидаемый <code>-</code> разрешает любой выход; в текущем запуске в <code>check.txt</code> записан <code>-</code>. Результат — <strong>Check passed</strong>.</p>
+      <div class="note amber"><strong>Граница этой проверки.</strong> Семь шагов проверочного слова не покрывают всю таблицу. Дополнительная сверка вычисленных МДНФ со всеми заданными клетками варианта 1 дала 0 расхождений для 50 переходов и 46 выходов. Это подтверждает функциональное соответствие на заданной части таблиц.</div>
+    </section>
+
+    <section id="architecture">
+      <p class="eyebrow">Где искать в проекте</p>
+      <h2>8. Роли файлов и методов</h2>
+      <ul class="source-list">
+        <li><a href="src/main.cpp"><code>src/main.cpp</code></a> — порядок этапов, запуск, сравнение и сообщения об ошибках.</li>
+        <li><a href="src/StructSynthesis.cpp"><code>src/StructSynthesis.cpp</code></a> — твоя основная логика: кодирование, шкалы, вызов ЛР № 1 и моделирование по МДНФ.</li>
+        <li><a href="include/StructSynthesis.hpp"><code>include/StructSynthesis.hpp</code></a> — поля: числа элементов, коды состояний и восемь функций.</li>
+        <li><a href="include/LogicFunction.hpp"><code>include/LogicFunction.hpp</code></a> — у функции есть имя, исходная шкала и список импликант МДНФ.</li>
+        <li><a href="src/FileIO.cpp"><code>src/FileIO.cpp</code></a> — чтение таблиц и слова, запись результата и шкал.</li>
+        <li><a href="src/Lab1Runner.cpp"><code>src/Lab1Runner.cpp</code></a> — связь с исполняемой программой ЛР № 1.</li>
+        <li><a href="build/output.txt"><code>build/output.txt</code></a> — полученные МДНФ; <a href="build/check.txt"><code>build/check.txt</code></a> — семь шагов проверки.</li>
+      </ul>
+      <p>Если будешь просматривать <a href="README.md">README.md</a>, учти: часть текста всё ещё описывает начальный каркас с <code>TODO</code>. Этот отчёт описывает текущую реализованную версию.</p>
+    </section>
+
+    <section id="defense">
+      <p class="eyebrow">Для устного объяснения</p>
+      <h2>9. Что важно уметь объяснить на защите</h2>
+      <div class="card">
+        <h3 style="margin-top:0">Абстрактный и структурный уровни</h3>
+        <p><strong>Абстрактный автомат</strong> описывает входы, состояния, выходы и правила перехода и выдачи выхода без указания схемы. <strong>Конечный автомат</strong> имеет конечные множества состояний, входов и выходов. <strong>Абстрактный синтез</strong> составляет такую модель из требований к поведению. <strong>Структурный синтез</strong> превращает готовую модель в кодирование состояний, элементы памяти и логические функции.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Способы задания и типы автоматов</h3>
+        <p>Автомат можно задать таблицами, графом переходов, функциями перехода и выхода, а также описанием алгоритма. <strong>Мили:</strong> выход зависит от состояния и входа. <strong>Мур:</strong> выход зависит от состояния. Таблица <code>f</code> задаёт следующее состояние, <code>g</code> — выход; у Мура выход часто отмечают у каждого состояния в таблице переходов.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Схема, триггер и выбор кода</h3>
+        <p><strong>Комбинационная схема</strong> не хранит состояние: её выходы определяются текущими входами. Память автомата дают D-триггеры. Функция возбуждения D-триггера вычисляет бит, который этот триггер должен хранить после такта, поэтому она связана со следующим значением его выхода. Другое кодирование состояний меняет таблицы истинности, число и вид импликант, а значит и реализацию схемы; при согласованном преобразовании внешнее поведение автомата сохраняется.</p>
+      </div>
+      <p class="small">Формулировки выше подготовлены по контрольным вопросам методички. Для уверенного ответа полезно воспроизвести каждую мысль своими словами и показать соответствующее место в коде.</p>
+    </section>
+
+    <section id="quiz">
+      <p class="eyebrow">Проверка понимания</p>
+      <h2>10. Обязательный квиз</h2>
+      <div class="quiz-intro">
+        <strong>Условие прохождения: 20 из 20 правильных ответов в одной проверке.</strong>
+        <p style="margin:6px 0 0">Вопросы охватывают твою реализацию и все десять тематических контрольных вопросов из методички. Можно исправлять ответы и проверять снова; объяснения появятся после попытки. Результат сохраняется только в этом браузере.</p>
+      </div>
+      <form id="quizForm" novalidate>
+        <div id="questions"></div>
+        <div class="quiz-actions">
+          <button type="submit">Проверить ответы</button>
+          <button type="button" class="secondary" id="resetQuiz">Очистить ответы</button>
+        </div>
+      </form>
+      <div id="quizResult" role="status" aria-live="polite">Квиз ещё не пройден. Ответь на все вопросы и нажми «Проверить ответы».</div>
+    </section>
+
+    <footer>
+      Основа: <a href="../ЛР№2_Структурный_синтез.pdf">методичка «Лабораторная работа № 2»</a>, вариант 1, и текущий код в этой папке. Отчёт автономен: для чтения и квиза интернет не нужен.
+    </footer>
+  </main>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  var f = [
+    [2,5,5,7,6,0,7,1], [3,8,6,7,5,6,1,2],
+    [7,8,6,6,7,2,3,1], [4,5,0,5,0,7,2,3],
+    [1,7,8,3,0,5,3,7], [5,5,8,6,7,1,3,2],
+    [0,4,7,5,0,5,6,3]
+  ];
+  var g = [
+    [1,5,0,4,2,3,4,2], [0,4,5,0,1,2,3,4],
+    [0,2,5,1,4,3,5,4], [4,1,2,0,5,4,3,2],
+    [1,0,5,4,3,5,0,2], [1,2,3,4,0,5,1,2],
+    [5,0,4,3,2,1,1,0]
+  ];
+  var inputPick = document.getElementById("inputPick");
+  var statePick = document.getElementById("statePick");
+  for (var x = 1; x <= 7; x++) inputPick.add(new Option("x" + x, String(x)));
+  for (var s = 1; s <= 8; s++) statePick.add(new Option("s" + s, String(s)));
+  inputPick.value = "2";
+  statePick.value = "3";
+  function bits(value) { return value.toString(2).padStart(3, "0"); }
+  function updateCell() {
+    var xi = Number(inputPick.value) - 1;
+    var si = Number(statePick.value) - 1;
+    var next = f[xi][si];
+    var out = g[xi][si];
+    var location = 8 * xi + si;
+    var q = next ? bits(next - 1).split("").reverse().join(" ") : "- - -";
+    var y = out ? [1,2,3,4,5].map(function (n) { return n === out ? "1" : "0"; }).join(" ") : "- - - - -";
+    document.getElementById("cellResult").innerHTML =
+      "<strong>Набор:</strong> " + bits(xi) + " " + bits(si) +
+      " &nbsp;·&nbsp; <strong>позиция шкалы:</strong> " + location +
+      "<br><strong>Таблицы:</strong> f = " + (next ? "s" + next : "−") +
+      ", g = " + (out ? "y" + out : "−") +
+      "<br><strong>Значения Q0 Q1 Q2:</strong> " + q +
+      "<br><strong>Значения y1…y5:</strong> " + y;
+  }
+  inputPick.addEventListener("change", updateCell);
+  statePick.addEventListener("change", updateCell);
+  updateCell();
+
+  var questions = [
+    {group:"Код", q:"Что получает Check() из ожидаемой последовательности состояний?", a:["Всю последовательность, чтобы ускорить проверку","Только начальное состояние","Следующее состояние на каждом шаге"], correct:1, why:"Остальные состояния Check() обязан вычислить по МДНФ; затем main() сравнит их с ожидаемыми."},
+    {group:"Код", q:"Какой набор битов соответствует паре x2, s3?", a:["010001","001010","001011"], correct:1, why:"Код x2 равен 001, код s3 равен 010; порядок — вход, затем текущее состояние."},
+    {group:"Код", q:"Где в шкале находится пара x2, s3?", a:["Позиция 10","Позиция 11","Позиция 18"], correct:0, why:"001010₂ = 10₁₀, или 8 × (2−1) + (3−1) = 10."},
+    {group:"Код", q:"Что означают Q0, Q1, Q2?", a:["Двоичный номер выхода","Биты текущего состояния до такта","Биты следующего состояния, подаваемые на D-входы"], correct:2, why:"Q0 — младший бит следующего состояния, Q2 — старший."},
+    {group:"Код", q:"Как представлены пять выходов в functions_?", a:["Тремя битами двоичного номера","Пятью отдельными функциями y1…y5","Одной строковой функцией"], correct:1, why:"Для определённого выхода ровно одна функция yj равна 1."},
+    {group:"Код", q:"Если f(x,s) = «-», а g(x,s) = y3, что записывается в шкалы?", a:["Все восемь значений остаются «-»","Q остаются «-», а значения y задают только y3 = 1","Q задаются нулями, а все y остаются «-»"], correct:1, why:"Переход и выход определяются независимо: свободен только переход."},
+    {group:"Код", q:"Почему каждая шкала содержит 64 символа?", a:["Это размер файла таблицы","Есть 6 входных битов функции и 2⁶ комбинаций","Это число всех строк двух таблиц"], correct:1, why:"Три бита входного символа плюс три бита текущего состояния дают 64 набора."},
+    {group:"Код", q:"Как Check() получает номер следующего состояния из результатов Q?", a:["Q0 + 2·Q1 + 4·Q2 + 1","4·Q0 + 2·Q1 + Q2","Q0 + Q1 + Q2"], correct:0, why:"Q0 — младший бит кода s−1; после сборки кода прибавляем 1 для номера s."},
+    {group:"Код", q:"Что делает символ «-» внутри импликанты МДНФ?", a:["Запрещает этот набор","Означает, что соответствующий бит не влияет","Означает выход автомата без номера"], correct:1, why:"Такой разряд можно не сравнивать с входным набором."},
+    {group:"Код", q:"Что записывает Check(), если активны сразу y2 и y4?", a:["Выход 2","Выход 4","kUndefinedValue, отображаемое как «-»"], correct:2, why:"Единственный номер выхода восстановить нельзя."},
+    {group:"Теория", q:"Что описывает абстрактный автомат?", a:["Только физическую схему из вентилей","Множества входов, состояний, выходов и правила их изменения","Только файл output.txt"], correct:1, why:"Абстрактная модель задаёт поведение без выбора конкретных элементов схемы."},
+    {group:"Теория", q:"Что означает «конечный» в выражении «конечный автомат»?", a:["Он прекращает работу после семи входов","Его множество состояний конечно","У него обязательно один конечный выход"], correct:1, why:"Конечность относится к числу возможных состояний; в модели также конечны алфавиты."},
+    {group:"Теория", q:"Что делает абстрактный синтез автомата?", a:["Строит поведенческую модель из требований к работе","Минимизирует импликанты готовой функции","Записывает готовую схему в check.txt"], correct:0, why:"Сначала получают модель поведения; структурный синтез реализует её в элементах схемы."},
+    {group:"Теория", q:"Что делает структурный синтез автомата?", a:["Составляет только текстовое описание задачи","Выбирает кодирование и получает функции/элементы для реализации модели","Повторяет проверочное слово"], correct:1, why:"Он переводит абстрактное поведение в структуру памяти и комбинационной логики."},
+    {group:"Теория", q:"Каким способом можно задать автомат?", a:["Только исходным кодом C++","Таблицами, графом или функциями перехода и выхода","Только проверочным словом"], correct:1, why:"Это разные формы описания одной модели поведения."},
+    {group:"Теория", q:"Чем выход автомата Мили отличается от выхода автомата Мура?", a:["У Мили зависит от состояния и входа, у Мура — от состояния","У Мили нет состояний, у Мура они есть","У Мура выход всегда равен следующему состоянию"], correct:0, why:"В варианте 1 применяется Мили: g(x,s) читает и вход, и состояние."},
+    {group:"Теория", q:"Что содержит отмеченная таблица переходов автомата Мура?", a:["Только последовательность входов проверки","Переходы и отметку выхода, связанного с состоянием","МДНФ каждой функции"], correct:1, why:"У Мура выход закреплён за состоянием, поэтому его удобно отметить рядом с состоянием."},
+    {group:"Теория", q:"Что такое комбинационная схема?", a:["Схема, чей результат определяется текущими входными значениями без собственной памяти","Схема, которая хранит код состояния в триггерах","Любая программа на C++"], correct:0, why:"Память дают триггеры; комбинационная часть вычисляет функции по текущим битам."},
+    {group:"Теория", q:"Что означает функция возбуждения D-триггера?", a:["Она вычисляет значение на входе D, которое станет значением выхода после такта","Она вычисляет число всех состояний автомата","Она выбирает файл для ЛР № 1"], correct:0, why:"Для D-триггера следующий выход Q(t+1) равен D(t)."},
+    {group:"Теория", q:"Как влияет другое кодирование состояний?", a:["Всегда оставляет МДНФ побитово той же","Меняет таблицы истинности и вид логических функций, сохраняя поведение при согласованном пересчёте","Убирает необходимость в таблице переходов"], correct:1, why:"Код — внутренняя форма состояния; смена формы меняет логические выражения, но не обязана менять наблюдаемое поведение."}
+  ];
+
+  var questionBox = document.getElementById("questions");
+  questions.forEach(function (item, index) {
+    var card = document.createElement("div");
+    card.className = "quiz-card";
+    var fieldset = document.createElement("fieldset");
+    var legend = document.createElement("legend");
+    legend.textContent = (index + 1) + ". [" + item.group + "] " + item.q;
+    fieldset.appendChild(legend);
+    var choices = document.createElement("div");
+    choices.className = "choices";
+    item.a.forEach(function (answer, choiceIndex) {
+      var label = document.createElement("label");
+      label.className = "choice";
+      var input = document.createElement("input");
+      input.type = "radio";
+      input.name = "q" + index;
+      input.value = String(choiceIndex);
+      input.required = true;
+      var span = document.createElement("span");
+      span.textContent = answer;
+      label.appendChild(input);
+      label.appendChild(span);
+      choices.appendChild(label);
+    });
+    fieldset.appendChild(choices);
+    card.appendChild(fieldset);
+    var feedback = document.createElement("div");
+    feedback.className = "feedback";
+    feedback.hidden = true;
+    card.appendChild(feedback);
+    questionBox.appendChild(card);
+  });
+
+  var key = "lab2-report-quiz-v1";
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || "{}"); } catch (_) { saved = {}; }
+  var attempts = Number(saved.attempts) || 0;
+  var passed = saved.passed === true;
+  var result = document.getElementById("quizResult");
+  var sideStatus = document.getElementById("sideStatus");
+  function showSavedStatus() {
+    if (passed) {
+      sideStatus.textContent = "Квиз пройден: 20/20. Попыток: " + attempts + ".";
+      result.className = "passed";
+      result.textContent = "Квиз пройден: 20 из 20. Теперь попробуй объяснить любой шаг без подсказок.";
+    } else {
+      sideStatus.textContent = "Квиз ещё не пройден. Попыток: " + attempts + ".";
+    }
+  }
+  showSavedStatus();
+  function save() {
+    try { localStorage.setItem(key, JSON.stringify({attempts:attempts, passed:passed})); } catch (_) {}
+  }
+  document.getElementById("quizForm").addEventListener("submit", function (event) {
+    event.preventDefault();
+    attempts++;
+    var correct = 0, missing = 0, firstWrong = null;
+    questions.forEach(function (item, index) {
+      var card = questionBox.children[index];
+      var selected = card.querySelector('input[name="q' + index + '"]:checked');
+      var feedback = card.querySelector(".feedback");
+      card.classList.remove("correct", "wrong");
+      feedback.hidden = false;
+      if (!selected) {
+        missing++;
+        card.classList.add("wrong");
+        feedback.className = "feedback bad";
+        feedback.textContent = "Выбери ответ. " + item.why;
+      } else if (Number(selected.value) === item.correct) {
+        correct++;
+        card.classList.add("correct");
+        feedback.className = "feedback good";
+        feedback.textContent = "Верно. " + item.why;
+      } else {
+        card.classList.add("wrong");
+        feedback.className = "feedback bad";
+        feedback.textContent = "Неверно. " + item.why;
+      }
+      if (card.classList.contains("wrong") && firstWrong === null) firstWrong = card;
+    });
+    if (correct === questions.length) {
+      passed = true;
+      result.className = "passed";
+      result.textContent = "Квиз пройден: " + correct + "/" + questions.length + " с " + attempts + "-й попытки. Ты разобрал ключевые этапы кода и контрольные вопросы.";
+      result.scrollIntoView({behavior:"smooth", block:"center"});
+    } else {
+      result.className = "failed";
+      result.textContent = "Пока " + correct + "/" + questions.length + ". Не отвечено: " + missing + ". Для прохождения нужно 20/20 в одной проверке. Исправь отмеченные вопросы и попробуй снова.";
+      if (firstWrong) firstWrong.scrollIntoView({behavior:"smooth", block:"center"});
+    }
+    sideStatus.textContent = passed ? "Квиз пройден: 20/20. Попыток: " + attempts + "." : "Квиз ещё не пройден. Попыток: " + attempts + ".";
+    save();
+  });
+  document.getElementById("resetQuiz").addEventListener("click", function () {
+    document.getElementById("quizForm").reset();
+    Array.prototype.forEach.call(questionBox.children, function (card) {
+      card.classList.remove("correct", "wrong");
+      card.querySelector(".feedback").hidden = true;
+    });
+    result.className = passed ? "passed" : "";
+    result.textContent = passed ? "Квиз уже пройден. Ответы очищены для повторения." : "Ответы очищены. Выбери ответы и проверь себя снова.";
+  });
+  function updateProgress() {
+    var max = document.documentElement.scrollHeight - innerHeight;
+    document.getElementById("readProgress").style.width = (max > 0 ? 100 * scrollY / max : 100) + "%";
+  }
+  addEventListener("scroll", updateProgress, {passive:true});
+  updateProgress();
+})();
+</script>
+</body>
+</html>

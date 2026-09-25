@@ -50,4 +50,9 @@ private:
     // Q0 отвечает за младший бит СЛЕДУЮЩЕГО состояния; yj — отдельный выход.
     // После Minimize() поле mdnf каждой функции заполнится автоматически.
     std::vector<LogicFunction> functions_;
+
+    int CalculateBitCount(unsigned int stateCount);
+    int CalculateOutputsCount(const Table &outputs);
+    void PrefillFunctions(void);
+    bool calculateDNF(std::vector<std::string> dnf, std::string inputs) const;
 };
