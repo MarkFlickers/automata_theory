@@ -20,7 +20,6 @@ StructSynthesis::StructSynthesis(Table transitions, Table outputs)
 
 void StructSynthesis::EncodeStates()
 {
-    // TODO [1]: заполнить поля из StructSynthesis.hpp.
     //  1. Получить inputCount_ / stateCount_ из размеров transitions_.
     //  2. По outputs_ определить outputCount_ (здесь номера y1..y5 без пропусков).
     //     kUndefinedValue = 0 означает '-', его не считать выходом.
@@ -98,7 +97,6 @@ void StructSynthesis::PrintEncoding(std::ostream& output) const
 
 void StructSynthesis::BuildSdnf()
 {
-    // TODO [2]: заполнить functions_, предварительно очистив старое содержимое.
     //  1. Создать функции Q0..Q(r-1), затем y1..yM (см. README).
     //  2. Для каждой функции создать шкалу длиной 2^(inputBitCount_ + stateBitCount_).
     //  3. Обойти пары (вход, текущее состояние), найти позицию в шкале.
@@ -187,7 +185,6 @@ void StructSynthesis::Minimize(const Lab1Runner &lab1)
 
 CheckWord StructSynthesis::Check(const CheckWord &expected) const
 {
-    // TODO [3]: моделировать автомат только по functions_[i].mdnf.
     //  1. Взять из expected входы и ТОЛЬКО первое состояние.
     //  2. Составить набор [код входа][код текущего состояния], как в BuildSdnf.
     //  3. Вычислить все Qj и yj на ОДНОМ наборе, до смены состояния.
