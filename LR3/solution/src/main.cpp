@@ -1,10 +1,13 @@
+#include "FCompTable.hpp"
 #include "FileIO.hpp"
+#include "MinAutomaton.hpp"
+#include "PreCompTable.hpp"
 #include "Printer.hpp"
+#include "SMaxComp.hpp"
 #include "Table.hpp"
 
 #include <exception>
 #include <iostream>
-#include <stdexcept>
 
 int main() {
     try {
@@ -16,22 +19,27 @@ int main() {
                   << transitions.StateCount() << " states\n";
         PrintAutomaton(std::cout, transitions, outputs);
 
-        // Фазы алгоритма Пола - Ангера. Классы появятся после обсуждения
-        // (см. README, раздел «Что предстоит реализовать»).
-        std::cout << "\n[1/4] Pre-compatibility table (PreCompTable)\n" << std::flush;
-        // TODO [1]: PreCompTable preTable(transitions, outputs); вывести таблицу.
+        std::cout << "\n[1/4] Pre-compatibility table (x - incompatible, v - unconditional)\n"
+                  << std::flush;
+        const PreCompTable preTable(transitions, outputs);
+        preTable.Print(std::cout);
 
-        std::cout << "[2/4] Full compatibility table (FCompTable)\n" << std::flush;
-        // TODO [2]: FCompTable fullTable(preTable); вывести таблицу.
+        std::cout << "\n[2/4] Full compatibility table\n" << std::flush;
+        const FCompTable fullTable(preTable);
+        fullTable.Print(std::cout);
 
-        std::cout << "[3/4] Maximal compatibility classes (SMaxComp)\n" << std::flush;
-        // TODO [3]: SMaxComp classes(fullTable); classes.Sort(); вывести классы.
+        std::cout << "\n[3/4] Maximal compatibility classes\n" << std::flush;
+        SMaxComp classes(fullTable);
+        classes.Print(std::cout);
+        std::cout << "Sorted:\n" << std::flush;
+        classes.Sort();
+        classes.Print(std::cout);
 
-        std::cout << "[4/4] Minimized machine\n" << std::flush;
-        // TODO [4]: построить таблицы f и g минимизированного автомата
-        //           и вывести их через PrintAutomaton(std::cout, f, g, "A").
+        std::cout << "\n[4/4] Minimized machine\n" << std::flush;
+        const MinAutomaton minimized(classes, transitions, outputs);
+        minimized.Print(std::cout);
 
-        throw std::logic_error("TODO [1]: Paull-Unger phases are not implemented yet");
+        return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;

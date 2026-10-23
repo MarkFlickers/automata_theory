@@ -9,12 +9,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(LAB3_OBJECT_DIRECTORY "${CMAKE_BINARY_DIR}/object")
 file(MAKE_DIRECTORY "${LAB3_OBJECT_DIRECTORY}")
 
-# Новые .cpp фаз алгоритма добавляй в этот список
 add_library(lab3_core OBJECT
+    src/CompTable.cpp
+    src/FCompTable.cpp
     src/FileIO.cpp
     src/ItemOutput.cpp
     src/ItemState.cpp
+    src/MinAutomaton.cpp
+    src/PreCompTable.cpp
     src/Printer.cpp
+    src/SCouple.cpp
+    src/SMaxComp.cpp
     src/Table.cpp
 )
 
